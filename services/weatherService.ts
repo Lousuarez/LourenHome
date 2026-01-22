@@ -1,6 +1,6 @@
 import { WeatherResponse } from '../types';
 
-const API_KEY = 'd540e635'; // The key provided in the image
+const API_KEY = 'd540e635'; // A chave extraída da imagem
 const CITY_NAME = 'Ponta Grossa,PR';
 
 // Fallback data in case the API Key domain restriction blocks localhost requests
@@ -35,20 +35,24 @@ const MOCK_DATA: WeatherResponse = {
 };
 
 export const fetchWeather = async (): Promise<WeatherResponse> => {
+  const url = `https://api.hgbrasil.com/weather?format=json-cors&key=${API_KEY}&city_name=${CITY_NAME}`;
+  
+  console.log(`[WeatherService] Tentando conectar em: ${url}`);
+
   try {
-    // Note: 'format=json-cors' helps with some CORS issues, but domain restriction on the key might still block it.
-    const url = `https://api.hgbrasil.com/weather?format=json-cors&key=${API_KEY}&city_name=${CITY_NAME}`;
-    
     const response = await fetch(url);
     
     if (!response.ok) {
-      throw new Error(`Weather API Error: ${response.statusText}`);
+      throw new Error(`Erro na API (Status: ${response.status})`);
     }
 
     const data = await response.json();
+    console.log('[WeatherService] Dados recebidos com sucesso:', data);
     return data;
   } catch (error) {
-    console.warn("Falha ao buscar dados da API (Provável restrição de domínio ou CORS). Usando dados de exemplo.", error);
+    console.error("[WeatherService] Falha na conexão real. Usando dados fictícios.", error);
+    console.info("Dica: Verifique se a chave da API permite requisições deste domínio (CORS) ou se está restrita a lsuarez.com.br");
+    
     // Return mock data so the UI doesn't break for the user
     return MOCK_DATA;
   }

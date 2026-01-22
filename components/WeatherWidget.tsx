@@ -1,37 +1,38 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { fetchWeather } from '../services/weatherService';
 import { WeatherResults } from '../types';
-import { Cloud, CloudRain, Sun, Wind, Droplets, MapPin, Loader2, AlertCircle } from 'lucide-react';
+import { Cloud, CloudRain, Sun, Wind, Droplets, MapPin, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 
 const WeatherWidget: React.FC = () => {
   const [weather, setWeather] = useState<WeatherResults | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [usingMock, setUsingMock] = useState<boolean>(false);
 
-  useEffect(() => {
-    const loadData = async () => {
-      setLoading(true);
-      try {
-        const data = await fetchWeather();
-        setWeather(data.results);
-        // If the date matches our mock data date exactly, we assume it fell back to mock
-        // (A simple heuristic for this demo)
-        if (data.by === 'mock_fallback') {
-          setUsingMock(true);
-        }
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setLoading(false);
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    setUsingMock(false); // Reset status before trying
+    try {
+      const data = await fetchWeather();
+      setWeather(data.results);
+      
+      // Verifica se os dados vieram do mock (fallback)
+      if (data.by === 'mock_fallback') {
+        setUsingMock(true);
       }
-    };
-
-    loadData();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  if (loading) {
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  if (loading && !weather) {
     return (
-      <div className="h-64 flex items-center justify-center bg-slate-800/50 rounded-3xl animate-pulse">
+      <div className="h-64 flex items-center justify-center bg-slate-800/50 rounded-3xl animate-pulse border border-slate-700">
         <Loader2 className="w-8 h-8 text-blue-400 animate-spin" />
       </div>
     );
@@ -39,8 +40,14 @@ const WeatherWidget: React.FC = () => {
 
   if (!weather) {
     return (
-      <div className="h-64 flex items-center justify-center bg-slate-800/50 rounded-3xl">
+      <div className="h-64 flex flex-col items-center justify-center bg-slate-800/50 rounded-3xl border border-slate-700 gap-4">
         <p className="text-slate-400">Não foi possível carregar o clima.</p>
+        <button 
+          onClick={loadData}
+          className="px-4 py-2 bg-slate-700 rounded-xl text-sm hover:bg-slate-600 transition-colors text-white"
+        >
+          Tentar Novamente
+        </button>
       </div>
     );
   }
@@ -53,20 +60,34 @@ const WeatherWidget: React.FC = () => {
   };
 
   return (
-    <div className="relative overflow-hidden bg-gradient-to-br from-slate-800 to-slate-900 rounded-3xl p-6 shadow-xl border border-slate-700">
+    <div className="relative overflow-hidden bg-gradient-to-br from-slate-800 to-slate-900 rounded-3xl p-6 shadow-xl border border-slate-700 group">
       
+      {/* Botão de Atualizar (aparece no hover ou se estiver carregando) */}
+      <div className="absolute top-6 right-6 z-10">
+        <button 
+          onClick={loadData}
+          disabled={loading}
+          className={`p-2 rounded-full bg-slate-800/50 hover:bg-slate-700 text-slate-400 hover:text-white transition-all ${loading ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+          title="Atualizar Clima"
+        >
+          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+        </button>
+      </div>
+
       {/* Header */}
       <div className="flex justify-between items-start mb-6">
-        <div className="flex items-center gap-2 text-slate-300">
-          <MapPin className="w-4 h-4" />
-          <span className="font-medium tracking-wide">{weather.city}</span>
-        </div>
-        {usingMock && (
-          <div className="flex items-center gap-1 text-xs text-orange-400 bg-orange-400/10 px-2 py-1 rounded-full border border-orange-400/20" title="Chave de API restrita ao domínio lsuarez.com.br">
-            <AlertCircle className="w-3 h-3" />
-            <span>Dados de Exemplo</span>
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2 text-slate-300">
+            <MapPin className="w-4 h-4" />
+            <span className="font-medium tracking-wide">{weather.city}</span>
           </div>
-        )}
+          {usingMock && (
+            <div className="flex items-center gap-1 text-[10px] text-orange-400 bg-orange-400/10 px-2 py-0.5 rounded-full border border-orange-400/20 w-fit">
+              <AlertCircle className="w-3 h-3" />
+              <span>Modo Exemplo (API Bloqueada)</span>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Main Info */}
