@@ -1,0 +1,5 @@
+{
+  "name": "My Daily Dashboard",
+  "description": "A personal dashboard featuring weather for Ponta Grossa, time, and daily focus.",
+  "requestFramePermissions": []
+}
